@@ -23,11 +23,11 @@
 
 ## print start date and time
 echo Job started on:
-  date -u
+date -u
 JOBNAME="EWAS"
 
 echo Job sumbitted from:
-  echo $SLURM_SUBMIT_DIR
+echo $(pwd)
 
 # Move the user to the project directory
 cd $1
@@ -37,8 +37,8 @@ cd $1
 module load Pandoc
 module load R/4.2.1-foss-2022a
 
-Rscript scripts/ewasScripts/EWAS.r $1 $2
+Rscript $(pwd)/EWAS.r $1 $2
 
 ## print finish date and time
 echo Job finished on:
-  date -u
+date -u

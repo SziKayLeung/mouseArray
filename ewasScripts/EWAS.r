@@ -2,7 +2,7 @@
 ##
 ## Title: Run EWAS
 ##
-## Purpose of script: Run linear regression within each cell type
+## Purpose of script: Run linear regression within each cell type/bulk
 ##                    
 ##                    This scripted is adapted from one co-authored
 ##                    by EJH and EMW for the MRC schizophrenia project
@@ -98,17 +98,46 @@ setwd(projDir)
 load(normData)
 
 
-QCmetrics$Group <- as.factor(QCmetrics$Group)
+# Check if 'Group' column exists
+if ("Group" %in% colnames(QCmetrics)) {
+  # If 'Group' exists, convert it to a factor
+  QCmetrics$Group <- as.factor(QCmetrics$Group)
+} else if ("Phenotype" %in% colnames(QCmetrics)) {
+  # If 'Group' doesn't exist but 'Phenotype' exists, create 'Group' from 'Phenotype'
+  QCmetrics$Group <- as.factor(QCmetrics$Phenotype)
+  print("Using 'Phenotype' as 'Group'")
+} else if ("Genotype" %in% colnames(QCmetrics)) {
+  # If 'Group' and 'Phenotype' don't exist, but 'Genotype' exists, create 'Group' from 'Genotype'
+  QCmetrics$Group <- as.factor(QCmetrics$Genotype)
+  print("Using 'Genotype' as 'Group'")
+} else {
+  # If neither 'Group', 'Phenotype', nor 'Genotype' exist
+  print("No valid group column found")
+}
+
+# subset on cell type if 2nd argument provided
+if(!is.na(cellType) && !is.null(cellType)){
+  print(paste0("running EWAS on ", cellType, " cell type..."))
+  ## subset to cell type samples
+  QCmetrics<-QCmetrics[which(QCmetrics$Cell_Type == cellType),]
+  
+  # subset beta matrix to cell type specific samples
+  celltypeNormbeta<-celltypeNormbeta[,QCmetrics$Basename]
+}else{
+  print("running EWAS on bulk")
+  celltypeNormbeta<-QCmetrics
+  cellType <- "bulk"
+} 
+
+# use covariate chip position if bulk tissue 
+if(cellType == "bulk"){
+  QCmetrics$Batch <- as.factor(QCmetrics$Chip_Position)
+}else{
+  QCmetrics$Batch <- as.factor(QCmetrics$Batch)
+}
+
 QCmetrics$Sex <- as.factor(QCmetrics$Sex)
-QCmetrics$Batch <- as.factor(QCmetrics$Batch)
 
-print(paste0("running EWAS on ", cellType, " cell type..."))
-## subset to cell type samples
-QCmetrics<-QCmetrics[which(QCmetrics$Cell_Type == cellType),]
-
-
-# subset beta matrix to cell type specific samples
-celltypeNormbeta<-celltypeNormbeta[,QCmetrics$Basename]
 
 # take top 100 rows for debugging
 #betasSub <- celltypeNormbeta[1:100,]

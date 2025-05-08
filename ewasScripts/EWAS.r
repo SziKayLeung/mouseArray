@@ -96,6 +96,8 @@ normData<-file.path(projDir, "2_normalised/normalisedData.rdat")
 
 setwd(projDir)
 load(normData)
+# output = QCmetrics & normBeta if bulk
+# OR QCmetrics & celltypeNormbeta
 
 
 # Check if 'Group' column exists
@@ -125,7 +127,7 @@ if(!is.na(cellType) && !is.null(cellType)){
   celltypeNormbeta<-celltypeNormbeta[,QCmetrics$Basename]
 }else{
   print("running EWAS on bulk")
-  celltypeNormbeta<-QCmetrics
+  celltypeNormbeta<-normBeta
   cellType <- "bulk"
 } 
 
@@ -152,6 +154,7 @@ cl <- makeCluster(nCores-1)
 registerDoParallel(cl)
 clusterExport(cl, list("runEWAS"))
 
+# 22 = number of output for each row from runEWAS() (12 (interactionLM) + 9 (nullLM) + 1 (anova))
 outtab<-matrix(data = parRapply(cl, celltypeNormbeta, runEWAS, QCmetrics), ncol = 22, byrow = TRUE)
 
 
@@ -168,7 +171,7 @@ colnames(outtab)<-c("GroupWT_coeff", "GroupWT_SE", "GroupWT_P",
                     
                     "anovoP") 
 
-filePath <- paste0("3_analysis/results/", cellType, "EWASout.rdat")
+filePath <- paste0(projDir, "/3_analysis/results/", cellType, "EWASout.rdat")
 save(outtab, file = filePath)
 
 

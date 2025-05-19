@@ -37,7 +37,7 @@ cd $1
 module load Pandoc
 module load R/4.2.1-foss-2022a
 
-Rscript $(pwd)/EWAS.r $1 $2
+Rscript /lustre/projects/Research_Project-MRC148213/lsl693/scripts/mouseArray/ewasScripts/EWAS.r $1 $2
 
 ## print finish date and time
 echo Job finished on:

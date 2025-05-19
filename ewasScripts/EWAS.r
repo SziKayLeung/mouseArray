@@ -47,9 +47,9 @@ library(dplyr)
 
 runEWAS<-function(row,QCmetrics){
   
-  nullLM<-lm(row ~ QCmetrics$Group + QCmetrics$Age + QCmetrics$Sex + QCmetrics$Batch)
+  nullLM<-lm(row ~ QCmetrics$Group + QCmetrics$Age + QCmetrics$Sex)
   
-  interactionLM<-lm(row ~ QCmetrics$Group + QCmetrics$Age*QCmetrics$Group + QCmetrics$Age + QCmetrics$Sex + QCmetrics$Batch)
+  interactionLM<-lm(row ~ QCmetrics$Group + QCmetrics$Age*QCmetrics$Group + QCmetrics$Age + QCmetrics$Sex)
   
   
   # extract case control main effect and cell proportion effect

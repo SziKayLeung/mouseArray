@@ -43,9 +43,9 @@ library(dplyr)
 
 runEWAS<-function(row,QCmetrics){
   
-  nullLM<-lm(row ~ QCmetrics$Sex + QCmetrics$Batch)
+  nullLM<-lm(row ~ QCmetrics$Sex)
   
-  fullLM<-lm(row ~ QCmetrics$Pathology + QCmetrics$Sex + QCmetrics$Batch)
+  fullLM<-lm(row ~ QCmetrics$Pathology + QCmetrics$Sex)
   
   
   # extract case control main effect and sex effect
@@ -78,8 +78,8 @@ projDir <- args[1]
 cellType <- args[2]
 #cellType <- "NEUNpos"
 
-
-normData<-file.path(projDir, "2_normalised/normalisedData.rdat")
+# Added matching pathology column (not previously in the normalisedData)
+normData<-file.path(projDir, "2_normalised/normalisedDataPathology.rdat")
 
 #----------------------------------------------------------------------#
 # LOAD AND PREPARE DATA
@@ -89,17 +89,45 @@ setwd(projDir)
 load(normData)
 
 
-QCmetrics$Group <- as.factor(QCmetrics$Group)
+# Check if 'Group' column exists
+if ("Group" %in% colnames(QCmetrics)) {
+  # If 'Group' exists, convert it to a factor
+  QCmetrics$Group <- as.factor(QCmetrics$Group)
+} else if ("Phenotype" %in% colnames(QCmetrics)) {
+  # If 'Group' doesn't exist but 'Phenotype' exists, create 'Group' from 'Phenotype'
+  QCmetrics$Group <- as.factor(QCmetrics$Phenotype)
+  print("Using 'Phenotype' as 'Group'")
+} else if ("Genotype" %in% colnames(QCmetrics)) {
+  # If 'Group' and 'Phenotype' don't exist, but 'Genotype' exists, create 'Group' from 'Genotype'
+  QCmetrics$Group <- as.factor(QCmetrics$Genotype)
+  print("Using 'Genotype' as 'Group'")
+} else {
+  # If neither 'Group', 'Phenotype', nor 'Genotype' exist
+  print("No valid group column found")
+}
+
+# subset on cell type if 2nd argument provided
+if(!is.na(cellType) && !is.null(cellType)){
+  print(paste0("running EWAS on ", cellType, " cell type..."))
+  ## subset to cell type samples
+  QCmetrics<-QCmetrics[which(QCmetrics$Cell_Type == cellType),]
+  
+  # subset beta matrix to cell type specific samples
+  celltypeNormbeta<-celltypeNormbeta[,QCmetrics$Basename]
+}else{
+  print("running EWAS on bulk")
+  celltypeNormbeta<-normBeta
+  cellType <- "bulk"
+} 
+
+# use covariate chip position if bulk tissue 
+if(cellType == "bulk"){
+  QCmetrics$Batch <- as.factor(QCmetrics$Chip_Position)
+}else{
+  QCmetrics$Batch <- as.factor(QCmetrics$Batch)
+}
+
 QCmetrics$Sex <- as.factor(QCmetrics$Sex)
-QCmetrics$Batch <- as.factor(QCmetrics$Batch)
-
-print(paste0("running EWAS on ", cellType, " cell type..."))
-## subset to cell type samples
-QCmetrics<-QCmetrics[which(QCmetrics$Cell_Type == cellType),]
-
-
-# subset beta matrix to cell type specific samples
-celltypeNormbeta<-celltypeNormbeta[,QCmetrics$Basename]
 
 # take top 100 rows for debugging
 #betasSub <- celltypeNormbeta[1:100,]
@@ -126,7 +154,7 @@ colnames(outtab)<-c("Pathology_coeff", "Pathology_SE", "Pathology_P",
                     
                     "anovoP") 
 
-filePath <- paste0("3_analysis/results/", cellType, "EWASpathout.rdat")
+filePath <- paste0(projDir, "/3_analysis/results/", cellType, "EWASpathout.rdat")
 save(outtab, file = filePath)
 
 

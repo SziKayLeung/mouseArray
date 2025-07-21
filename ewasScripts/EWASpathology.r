@@ -129,6 +129,20 @@ if(cellType == "bulk"){
 
 QCmetrics$Sex <- as.factor(QCmetrics$Sex)
 
+# check consistent number of samples in QC metrics and normalised data
+if(length(setdiff(colnames(celltypeNormbeta),QCmetrics$Basename)) != 0){
+  print("Normalised beta values have samples that are not in the QC metrics")
+}
+if(length(setdiff(QCmetrics$Basename, colnames(celltypeNormbeta))) != 0){
+  print("Normalised beta values have samples that are not in the QC metrics")
+}
+
+# check the order of sample names in QC metrics and the normalised data column names are the same
+if(isFALSE(identical(colnames(celltypeNormbeta), QCmetrics$Basename))){
+  print("Column names of normalised beta and QC metrics Basename are not in the same order; Reordered QC metrics")
+  QCmetrics <- QCmetrics[match(colnames(celltypeNormbeta), QCmetrics$Basename),]
+}
+
 # take top 100 rows for debugging
 #betasSub <- celltypeNormbeta[1:100,]
 #row <- colMeans(celltypeNormbeta)

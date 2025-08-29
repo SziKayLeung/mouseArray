@@ -49,10 +49,11 @@ runEWAS<-function(row, QCmetrics, deconvolution, species){
   if(isTRUE(deconvolution)){
   
     if(species == "mouse"){
-    
-       nullLM<-lm(row ~ QCmetrics$Sex + QCmetrics$DN + QCmetrics$NEUN)
+        
+       # drop DN as only problem with multicollinearity since only trained on two cell populations and NeuN was more significant
+       nullLM<-lm(row ~ QCmetrics$Sex + QCmetrics$NEUN)
 
-       fullLM<-lm(row ~ QCmetrics$Pathology + QCmetrics$Sex + QCmetrics$DN + QCmetrics$NEUN + QCmetrics$Pathology*QCmetrics$DN)
+       fullLM<-lm(row ~ QCmetrics$Pathology + QCmetrics$Sex + QCmetrics$NEUN + QCmetrics$Pathology*QCmetrics$NEUN)
        
       # extract case control main effect and sex effect
       return(c(summary(fullLM)$coefficients["QCmetrics$Pathology",c(1,2,4)],
@@ -62,15 +63,16 @@ runEWAS<-function(row, QCmetrics, deconvolution, species){
                summary(nullLM)$coefficients["QCmetrics$SexM",c(1,2,4)],
                
                # extract interaction terms
-               summary(fullLM)$coefficients["QCmetrics$Pathology:QCmetrics$DN",c(1,2,4)],
+               summary(fullLM)$coefficients["QCmetrics$Pathology:QCmetrics$NEUN",c(1,2,4)],
                
                # run anova
                anova(fullLM, nullLM)[2,"Pr(>F)"])) 
     }else{
     
-      nullLM<-lm(row ~ QCmetrics$Sex + QCmetrics$IRF8 + QCmetrics$NEUN + QCmetrics$SOX10 + QCmetrics$TN)
+      # drop TN since all populations would add up to 1 and avoid problems with multicollinearity
+      nullLM<-lm(row ~ QCmetrics$Sex + QCmetrics$IRF8 + QCmetrics$NEUN + QCmetrics$SOX10)
 
-      fullLM<-lm(row ~ QCmetrics$Pathology + QCmetrics$Sex + QCmetrics$IRF8 + QCmetrics$NEUN + QCmetrics$SOX10 + QCmetrics$TN + QCmetrics$Pathology*QCmetrics$IRF8 + QCmetrics$Pathology*QCmetrics$SOX10)
+      fullLM<-lm(row ~ QCmetrics$Pathology + QCmetrics$Sex + QCmetrics$IRF8 + QCmetrics$NEUN + QCmetrics$SOX10 + QCmetrics$Pathology*QCmetrics$IRF8)
        
       # extract case control main effect and sex effect
       return(c(summary(fullLM)$coefficients["QCmetrics$Pathology",c(1,2,4)],
@@ -81,7 +83,6 @@ runEWAS<-function(row, QCmetrics, deconvolution, species){
                
                # extract interaction terms
                summary(fullLM)$coefficients["QCmetrics$Pathology:QCmetrics$IRF8",c(1,2,4)],
-               summary(fullLM)$coefficients["QCmetrics$Pathology:QCmetrics$SOX10",c(1,2,4)],
                
                # run anova
                anova(fullLM, nullLM)[2,"Pr(>F)"]))
@@ -258,11 +259,11 @@ message("Deconvolution on the species dataset = ", species)
 if(isTRUE(deconvolution) & species == "mouse"){
   outtab<-matrix(data = parRapply(cl, celltypeNormbeta, runEWAS, QCmetrics, deconvolution, species), ncol = 13, byrow = TRUE)
   outputcolumnNames=c("Pathology_coeff", "Pathology_SE", "Pathology_P","SexM_coeff", "SexM_SE", "SexM_P", "nullSexM_coeff", "nullSexM_SE", "nullSexM_P", 
-"Pathology:DN_coeff", "Pathology:DN_SE", "Pathology:DN_P", "anovoP")
+"Pathology:NeuN_coeff", "Pathology:NeuN_SE", "Pathology:NeuN_P", "anovoP")
 }else if(isTRUE(deconvolution) & species == "human"){
-  outtab<-matrix(data = parRapply(cl, celltypeNormbeta, runEWAS, QCmetrics, deconvolution, species), ncol = 16, byrow = TRUE)
+  outtab<-matrix(data = parRapply(cl, celltypeNormbeta, runEWAS, QCmetrics, deconvolution, species), ncol = 13, byrow = TRUE)
   outputcolumnNames=c("Pathology_coeff", "Pathology_SE", "Pathology_P","SexM_coeff", "SexM_SE", "SexM_P", "nullSexM_coeff", "nullSexM_SE", "nullSexM_P", 
-"Pathology:IRF8_coeff", "Pathology:IRF8_SE", "Pathology:IRF8_P", "Pathology:SOX10_coeff", "Pathology:SOX10_SE", "Pathology:SOX10_P", "anovoP")
+"Pathology:IRF8_coeff", "Pathology:IRF8_SE", "Pathology:IRF8_P", "anovoP")
 }else{
  outtab<-matrix(data = parRapply(cl, celltypeNormbeta, runEWAS, QCmetrics, deconvolution, species), ncol = 10, byrow = TRUE)
  outputcolumnNames=c("Pathology_coeff", "Pathology_SE", "Pathology_P","SexM_coeff", "SexM_SE", "SexM_P", "nullSexM_coeff", "nullSexM_SE", "nullSexM_P", "anovoP")
